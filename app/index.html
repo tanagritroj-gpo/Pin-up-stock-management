@@ -318,6 +318,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     font-weight:700;
     border-radius:2px;
   }
+  .bo-tag{display:block;font-size:10.5px;color:var(--warn);font-weight:600;white-space:nowrap;}
   .status-chip.critical{background:var(--critical-bg);color:var(--critical);}
   .status-chip.warn{background:var(--warn-bg);color:var(--warn);}
   .status-chip.ok{background:var(--ok-bg);color:var(--ok);}
@@ -330,6 +331,33 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     background:var(--paper-raised);
   }
   .empty-state strong{color:var(--ink);display:block;font-size:15px;margin-bottom:6px;}
+
+  .bo-alert{
+    border:1px solid var(--critical);
+    border-left:3px solid var(--critical);
+    background:var(--critical-bg);
+    padding:14px 16px;
+    margin-bottom:20px;
+  }
+  .bo-alert-head{
+    font-weight:700;
+    color:var(--critical);
+    font-size:14px;
+    margin-bottom:4px;
+  }
+  .bo-alert-sub{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 12px;
+  }
+  .bo-alert-table{
+    background:var(--paper-raised);
+    font-size:13px;
+  }
+  .bo-alert-table thead th{
+    border-bottom:2px solid var(--critical);
+    color:var(--critical);
+  }
 
   .restore-bar{
     display:none;
@@ -449,17 +477,18 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <div class="field">
         <label for="periodDays">จำนวนวันของช่วงยอดขายที่อัปโหลด</label>
         <input type="number" id="periodDays" value="30" min="1">
+        <span class="hint">เช่น ดึงยอดขายสะสม 4 เดือน → กรอก 120 · หรือถ้าแปลงเป็นยอดเฉลี่ย/เดือนมาแล้ว → กรอก 30</span>
       </div>
       <div class="field">
         <label for="defaultLeadTime">Lead Time เริ่มต้น (วัน)</label>
-        <input type="number" id="defaultLeadTime" value="7" min="0">
+        <input type="number" id="defaultLeadTime" value="10" min="0">
       </div>
       <div class="field">
         <label for="defaultSafety">Safety Stock เริ่มต้น</label>
         <input type="number" id="defaultSafety" value="0" min="0">
       </div>
       <div class="field" style="flex-grow:1;">
-        <span class="hint">สต็อกพร้อมใช้จริง = สต็อก − BO&nbsp;&nbsp;·&nbsp;&nbsp;จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock</span>
+        <span class="hint">จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock&nbsp;&nbsp;·&nbsp;&nbsp;แนะนำเบิก = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่ง</span>
       </div>
       <button class="primary-btn" id="calcBtn" disabled>คำนวณจุดเบิกสินค้า</button>
     </div>
@@ -469,10 +498,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <h2 class="section-title">3. รายการที่ต้องเบิก</h2>
     <p class="section-sub" id="resultsSub"></p>
 
+    <div class="bo-alert" id="boAlert" hidden></div>
+
     <div class="stat-row">
       <div class="stat-chip"><span class="num" id="statTotal">0</span><span class="lbl">รายการทั้งหมด</span></div>
       <div class="stat-chip critical"><span class="num" id="statCritical">0</span><span class="lbl">ขาดสต็อกแล้ว</span></div>
-      <div class="stat-chip warn"><span class="num" id="statWarn">0</span><span class="lbl">ควรเบิกด่วน</span></div>
+      <div class="stat-chip warn"><span class="num" id="statWarn">0</span><span class="lbl">ควรเบิก</span></div>
       <div class="stat-chip ok"><span class="num" id="statOk">0</span><span class="lbl">สต็อกเพียงพอ</span></div>
     </div>
 
@@ -483,7 +514,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           <option value="need">แสดงเฉพาะที่ต้องเบิก</option>
           <option value="all">แสดงทั้งหมด</option>
           <option value="critical">เฉพาะ ขาดสต็อกแล้ว</option>
-          <option value="warn">เฉพาะ ควรเบิกด่วน</option>
+          <option value="warn">เฉพาะ ควรเบิก</option>
           <option value="ok">เฉพาะ เพียงพอ</option>
         </select>
         <label class="toggle-label"><input type="checkbox" id="sortByUrgency" checked> เรียงตามความเร่งด่วน</label>
@@ -500,6 +531,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   </div>
 
   <footer class="note">
+    <strong>สูตรคำนวณ:</strong> ยอดขายเฉลี่ย/วัน = ยอดขายในช่วง ÷ จำนวนวัน · จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock · แนะนำเบิก = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่งลูกค้า (BO ถูกบวกเพิ่มเข้าจำนวนเบิกเสมอถ้ามี) · รายการที่มี BO แต่ไม่มีในไฟล์สต็อก จะขึ้นกล่องแจ้งเตือนสีแดงด้านบนและอยู่ในไฟล์ CSV<br>
     ตัวอักษรสีน้ำเงินในตาราง = ช่องแก้ไขได้ (Lead Time / Safety Stock ต่อรายการ) แก้แล้วตัวเลขจะคำนวณใหม่ทันที · ข้อมูลทั้งหมดประมวลผลในเครื่องของคุณ ไม่ถูกส่งออกไปที่เซิร์ฟเวอร์ใด ๆ · ไฟล์ที่อัปโหลด ค่าที่ตั้ง และค่าที่แก้รายตัว จะถูกบันทึกไว้ในเบราว์เซอร์นี้อัตโนมัติ เปิดใหม่แล้วข้อมูลยังอยู่ (กด "ล้างข้อมูลที่บันทึกไว้" เพื่อเริ่มใหม่)
   </footer>
 
@@ -510,6 +542,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   const state = {
     stock: null, bo: null, sales: null, lt: null,
     rows: [],
+    boOrphans: [],
     overrides: {},
     fileNames: {},
     computed: false
@@ -828,18 +861,31 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     const filtered = rows.filter(r => r.hasStockRecord);
     filtered.sort((a,b) => a.code.localeCompare(b.code));
     state.rows = filtered;
+
+    // แจ้งเตือน: มี BO ค้างส่ง แต่ไม่มีรายการในไฟล์สต็อกคงคลัง = ยังไม่ได้เบิก?
+    state.boOrphans = Object.keys(state.bo || {})
+      .filter(code => (Number((state.bo[code]||{}).bo) || 0) > 0 && !(state.stock || {})[code])
+      .map(code => ({
+        code,
+        name: ((state.sales||{})[code] || {}).name || ((state.bo||{})[code] || {}).name || '',
+        boQty: Number(state.bo[code].bo) || 0
+      }))
+      .sort((a,b) => a.code.localeCompare(b.code));
   }
 
   function deriveMetrics(r){
     const netAvailable = r.currentStock - r.boQty;
     const avgDaily = r.salesQty / r.periodDays;
     const reorderPoint = avgDaily * r.leadTime + r.safety;
-    const suggestedQty = Math.max(0, Math.ceil(reorderPoint - netAvailable));
+    // ส่วนที่สต็อกคงคลังไม่พอคลุมดีมานด์ช่วง Lead Time (+ Safety)
+    const demandShortfall = Math.max(0, Math.ceil(reorderPoint - r.currentStock));
+    // top-up ยอด BO ค้างส่งลูกค้าเข้าไปเสมอ ถ้ามี
+    const suggestedQty = demandShortfall + r.boQty;
     let status, statusLabel;
     if(netAvailable <= 0){ status='critical'; statusLabel='ขาดสต็อกแล้ว'; }
-    else if(netAvailable <= reorderPoint){ status='warn'; statusLabel='ควรเบิกด่วน'; }
+    else if(suggestedQty > 0){ status='warn'; statusLabel='ควรเบิก'; }
     else { status='ok'; statusLabel='เพียงพอ'; }
-    return {netAvailable, avgDaily, reorderPoint, suggestedQty, status, statusLabel};
+    return {netAvailable, avgDaily, reorderPoint, demandShortfall, suggestedQty, status, statusLabel};
   }
 
   function fmt(n, dec){
@@ -847,7 +893,24 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     return Number(n).toLocaleString('th-TH', {minimumFractionDigits:dec, maximumFractionDigits:dec});
   }
 
+  function renderBoAlert(){
+    const box = document.getElementById('boAlert');
+    const list = state.boOrphans || [];
+    if(list.length === 0){ box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    const totalBo = list.reduce((s,o) => s + o.boQty, 0);
+    let html = `<div class="bo-alert-head">⚠️ มี BO ค้างส่งลูกค้า ${list.length} รายการ ที่ไม่มีในไฟล์สต็อกคงคลัง — ยังไม่ได้เบิก?</div>`+
+      `<p class="bo-alert-sub">รายการเหล่านี้มียอดค้างส่งลูกค้ารวม ${fmt(totalBo)} หน่วย แต่ไม่ปรากฏในไฟล์สต็อก ควรตรวจสอบว่าตกหล่นจากการเบิกหรือไม่</p>`+
+      '<table class="bo-alert-table"><thead><tr><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th class="num">BO ค้างส่ง</th></tr></thead><tbody>';
+    list.forEach(o => {
+      html += `<tr><td>${esc(o.code)}</td><td class="name-cell">${esc(o.name || '—')}</td><td class="num">${fmt(o.boQty)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    box.innerHTML = html;
+  }
+
   function render(){
+    renderBoAlert();
     const q = normalize(document.getElementById('searchBox').value);
     const statusFilterVal = document.getElementById('statusFilter').value;
     const sortByUrgency = document.getElementById('sortByUrgency').checked;
@@ -905,7 +968,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         `<td class="num"><input class="editable" type="number" min="0" value="${r.leadTime}" data-field="leadTime" data-code="${escAttr(r.code)}"></td>`+
         `<td class="num"><input class="editable" type="number" min="0" value="${r.safety}" data-field="safety" data-code="${escAttr(r.code)}"></td>`+
         `<td class="num">${fmt(r.reorderPoint,1)}</td>`+
-        `<td class="num"><strong>${fmt(r.suggestedQty)}</strong></td>`+
+        `<td class="num"><strong>${fmt(r.suggestedQty)}</strong>${r.boQty>0 && r.suggestedQty>0 ? `<span class="bo-tag">รวม BO ${fmt(r.boQty)}</span>` : ''}</td>`+
         `<td><span class="status-chip ${r.status}">${r.statusLabel}</span></td>`+
         `</tr>`;
     });
@@ -962,11 +1025,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   document.getElementById('exportBtn').addEventListener('click', () => {
     const rows = state.rows.map(r => Object.assign({}, r, deriveMetrics(r)));
     const headers = ['รหัสสินค้า','ชื่อสินค้า','หน่วย','สต็อกคงคลัง','ยอดค้างส่ง BO','สต็อกพร้อมใช้จริง','ยอดขายช่วงเวลา','ยอดขายเฉลี่ยต่อวัน','Lead Time','Safety Stock','จุดเบิกสินค้า','จำนวนที่แนะนำให้เบิก','สถานะ'];
+    const enc = arr => arr.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
     const lines = [headers.join(',')];
+    // แถวแจ้งเตือน: BO ค้างส่งแต่ไม่มีในไฟล์สต็อก
+    (state.boOrphans || []).forEach(o => {
+      lines.push(enc([o.code, o.name, '', '', o.boQty, '', '', '', '', '', '', o.boQty, 'BO ค้างส่ง — ไม่มีในไฟล์สต็อกคงคลัง']));
+    });
     rows.filter(r=>r.status!=='ok').forEach(r => {
-      const line = [r.code, r.name, r.unit, r.currentStock, r.boQty, r.netAvailable, r.salesQty, r.avgDaily.toFixed(1), r.leadTime, r.safety, r.reorderPoint.toFixed(1), r.suggestedQty, r.statusLabel]
-        .map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
-      lines.push(line);
+      lines.push(enc([r.code, r.name, r.unit, r.currentStock, r.boQty, r.netAvailable, r.salesQty, r.avgDaily.toFixed(1), r.leadTime, r.safety, r.reorderPoint.toFixed(1), r.suggestedQty, r.statusLabel]));
     });
     const csv = '\uFEFF' + lines.join('\r\n');
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
