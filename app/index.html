@@ -419,7 +419,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     border-radius:var(--r-pill);
     white-space:nowrap;
   }
-  .bo-tag{display:block;font-size:10.5px;color:var(--warn);font-weight:600;white-space:nowrap;margin-top:2px;}
   .status-chip.critical{background:var(--critical-bg);color:var(--critical);}
   .status-chip.warn{background:var(--warn-bg);color:var(--warn);}
   .status-chip.ok{background:var(--ok-bg);color:var(--ok);}
@@ -1174,7 +1173,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         `<td class="num"><input class="editable" type="number" min="0" value="${r.leadTime}" data-field="leadTime" data-code="${escAttr(r.code)}" title="เว้นว่างเพื่อกลับไปใช้ค่า Lead Time ด้านบน"></td>`+
         `<td class="num"><input class="editable${r.safetyIsAuto?' auto-val':''}" type="number" min="0" value="${r.safety}" data-field="safety" data-code="${escAttr(r.code)}" title="${r.safetyIsAuto?'คำนวณอัตโนมัติจากยอดขาย — พิมพ์ตัวเลขเพื่อกำหนดเอง':'กำหนดเอง — เว้นว่างเพื่อกลับเป็นอัตโนมัติ'}"></td>`+
         `<td class="num">${fmt(r.reorderPoint,1)}</td>`+
-        `<td class="num"><strong>${fmt(r.suggestedQty)}</strong>${r.boQty>0 && r.suggestedQty>0 ? `<span class="bo-tag">รวม BO ${fmt(r.boQty)}</span>` : ''}</td>`+
+        `<td class="num"><strong>${fmt(r.suggestedQty)}</strong></td>`+
         `<td><span class="status-chip ${r.status}">${r.statusLabel}</span></td>`+
         `</tr>`;
     });
