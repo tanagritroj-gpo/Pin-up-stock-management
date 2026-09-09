@@ -324,6 +324,41 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .status-chip.warn{background:var(--warn-bg);color:var(--warn);}
   .status-chip.ok{background:var(--ok-bg);color:var(--ok);}
 
+  thead th.th-sort{cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th.th-sort:hover{color:var(--ink);background:#EFF3EF;}
+  thead th.th-sort.sorted{color:var(--brand);}
+
+  .page-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-top:12px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .page-bar select{
+    border:1px solid var(--line-strong);
+    padding:4px 6px;
+    font-family:inherit;
+    font-size:12.5px;
+    background:var(--paper-raised);
+  }
+  .page-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .page-nav button{
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    color:var(--ink);
+    font-family:inherit;
+    font-size:12.5px;
+    padding:5px 10px;
+    cursor:pointer;
+  }
+  .page-nav button:hover:not(:disabled){background:var(--brand);color:#fff;border-color:var(--brand);}
+  .page-nav button:disabled{opacity:.4;cursor:not-allowed;}
+  .page-nav span{padding:0 4px;}
+
   .empty-state{
     padding:60px 20px;
     text-align:center;
@@ -526,6 +561,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
 
     <div id="tableWrap"></div>
+    <div class="page-bar" id="pageBar" hidden></div>
   </section>
 
   <div class="empty-state" id="emptyState">
@@ -548,8 +584,27 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     boOrphans: [],
     overrides: {},
     fileNames: {},
-    computed: false
+    computed: false,
+    view: { sortKey: '', sortDir: 'asc', page: 1, pageSize: 50 }
   };
+
+  // คอลัมน์ในตารางผลลัพธ์ (ใช้สร้างหัวตาราง + การเรียงลำดับ)
+  const COLS = [
+    {key:'code',        label:'รหัส',          type:'str'},
+    {key:'name',        label:'ชื่อสินค้า',    type:'str'},
+    {key:'unit',        label:'หน่วย',         type:'str'},
+    {key:'currentStock',label:'สต็อก',         type:'num'},
+    {key:'boQty',       label:'BO',            type:'num'},
+    {key:'netAvailable',label:'พร้อมใช้จริง',  type:'num'},
+    {key:'salesQty',    label:'ยอดขาย/ช่วง',   type:'num'},
+    {key:'avgDaily',    label:'เฉลี่ย/วัน',    type:'num'},
+    {key:'leadTime',    label:'Lead Time',     type:'num'},
+    {key:'safety',      label:'Safety (auto)', type:'num'},
+    {key:'reorderPoint',label:'จุดเบิก',       type:'num'},
+    {key:'suggestedQty',label:'แนะนำเบิก',     type:'num'},
+    {key:'status',      label:'สถานะ',         type:'status'}
+  ];
+  const STATUS_ORDER = {critical:0, warn:1, ok:2};
 
   const STORAGE_KEY = 'pinup-stock-v1';
 
@@ -566,7 +621,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           periodDays: document.getElementById('periodDays').value,
           defaultLeadTime: document.getElementById('defaultLeadTime').value,
           safetyMonths: document.getElementById('safetyMonths').value
-        }
+        },
+        view: {
+          sortKey: state.view.sortKey,
+          sortDir: state.view.sortDir,
+          pageSize: state.view.pageSize
+        },
+        sortByUrgency: document.getElementById('sortByUrgency').checked
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }catch(err){
@@ -607,6 +668,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       if(payload.settings.defaultLeadTime !== undefined) document.getElementById('defaultLeadTime').value = payload.settings.defaultLeadTime;
       if(payload.settings.safetyMonths !== undefined) document.getElementById('safetyMonths').value = payload.settings.safetyMonths;
     }
+
+    if(payload.view){
+      state.view.pageSize = [20,50,100].indexOf(payload.view.pageSize) !== -1 ? payload.view.pageSize : 50;
+      state.view.sortKey = COLS.some(c => c.key === payload.view.sortKey) ? payload.view.sortKey : '';
+      state.view.sortDir = payload.view.sortDir === 'desc' ? 'desc' : 'asc';
+    }
+    if(payload.sortByUrgency !== undefined) document.getElementById('sortByUrgency').checked = payload.sortByUrgency;
 
     const LABELS = {stock:'สต็อกคงคลัง', bo:'ยอดค้างส่ง BO', sales:'ยอดขาย', lt:'Lead Time/Safety Stock'};
     ['stock','bo','sales','lt'].forEach(target => {
@@ -934,9 +1002,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       rows = rows.filter(r => r.status === statusFilterVal);
     }
 
-    if(sortByUrgency){
-      const order = {critical:0, warn:1, ok:2};
-      rows.sort((a,b) => order[a.status]-order[b.status] || (b.suggestedQty - a.suggestedQty));
+    const sv = state.view;
+    if(sv.sortKey){
+      sortRows(rows, sv.sortKey, sv.sortDir);
+    } else if(sortByUrgency){
+      rows.sort((a,b) => STATUS_ORDER[a.status]-STATUS_ORDER[b.status] || (b.suggestedQty - a.suggestedQty));
     }
 
     // stats computed on full set (not filtered by search/status, to always reflect true counts)
@@ -947,23 +1017,34 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     document.getElementById('statOk').textContent = all.filter(r=>r.status==='ok').length;
 
     document.getElementById('resultsSub').textContent =
-      `คำนวณจากยอดขาย ${state.rows[0]?state.rows[0].periodDays:'-'} วัน · แสดง ${rows.length} จาก ${state.rows.length} รายการ`;
+      `คำนวณจากยอดขาย ${state.rows[0]?state.rows[0].periodDays:'-'} วัน · พบ ${fmt(rows.length)} จาก ${fmt(state.rows.length)} รายการ`;
 
     const wrap = document.getElementById('tableWrap');
+    const pageBar = document.getElementById('pageBar');
     if(rows.length === 0){
       wrap.innerHTML = '<div class="empty-state"><strong>ไม่พบรายการ</strong>ลองปรับตัวกรองหรือคำค้นหา</div>';
+      pageBar.hidden = true;
+      pageBar.innerHTML = '';
       return;
     }
 
+    // แบ่งหน้า
+    const total = rows.length;
+    const pageCount = Math.max(1, Math.ceil(total / sv.pageSize));
+    if(sv.page > pageCount) sv.page = pageCount;
+    if(sv.page < 1) sv.page = 1;
+    const startIdx = (sv.page - 1) * sv.pageSize;
+    const pageRows = rows.slice(startIdx, startIdx + sv.pageSize);
+
     let html = '<table><thead><tr>'+
-      '<th>รหัส</th><th>ชื่อสินค้า</th><th>หน่วย</th>'+
-      '<th class="num">สต็อก</th><th class="num">BO</th><th class="num">พร้อมใช้จริง</th>'+
-      '<th class="num">ยอดขาย/ช่วง</th><th class="num">เฉลี่ย/วัน</th>'+
-      '<th class="num">Lead Time</th><th class="num">Safety (auto)</th>'+
-      '<th class="num">จุดเบิก</th><th class="num">แนะนำเบิก</th><th>สถานะ</th>'+
+      COLS.map(c => {
+        const active = sv.sortKey === c.key;
+        const arrow = active ? (sv.sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+        return `<th class="th-sort${c.type==='num'?' num':''}${active?' sorted':''}" data-sort-key="${c.key}" title="คลิกเพื่อเรียงตาม ${esc(c.label)}">${esc(c.label)}${arrow}</th>`;
+      }).join('')+
       '</tr></thead><tbody>';
 
-    rows.forEach(r => {
+    pageRows.forEach(r => {
       html += `<tr data-code="${escAttr(r.code)}">`+
         `<td>${esc(r.code)}</td>`+
         `<td class="name-cell">${esc(r.name)}</td>`+
@@ -982,6 +1063,25 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     });
     html += '</tbody></table>';
     wrap.innerHTML = html;
+
+    wrap.querySelectorAll('th.th-sort').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sortKey;
+        const col = COLS.find(c => c.key === key);
+        if(sv.sortKey === key){
+          sv.sortDir = sv.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sv.sortKey = key;
+          sv.sortDir = (col && col.type === 'str') ? 'asc' : 'desc'; // ตัวเลข/สถานะ เริ่มจากมาก→น้อย
+        }
+        document.getElementById('sortByUrgency').checked = false;
+        sv.page = 1;
+        saveState();
+        render();
+      });
+    });
+
+    renderPageBar(total, pageCount, startIdx, pageRows.length);
 
     wrap.querySelectorAll('.editable').forEach(inp => {
       inp.addEventListener('change', (e) => {
@@ -1002,6 +1102,59 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     });
   }
 
+  function sortRows(rows, key, dir){
+    const mul = dir === 'desc' ? -1 : 1;
+    return rows.sort((a,b) => {
+      let r;
+      if(key === 'status'){
+        r = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+      } else if(typeof a[key] === 'number' || typeof b[key] === 'number'){
+        r = (Number(a[key]) || 0) - (Number(b[key]) || 0);
+      } else {
+        r = String(a[key] == null ? '' : a[key]).localeCompare(String(b[key] == null ? '' : b[key]), 'th');
+      }
+      return (r * mul) || String(a.code).localeCompare(String(b.code), 'th');
+    });
+  }
+
+  function renderPageBar(total, pageCount, startIdx, shown){
+    const sv = state.view;
+    const bar = document.getElementById('pageBar');
+    bar.hidden = false;
+    const from = total === 0 ? 0 : startIdx + 1;
+    const to = startIdx + shown;
+    bar.innerHTML =
+      `<div class="page-left">แสดง ${fmt(from)}–${fmt(to)} จาก ${fmt(total)} รายการ&nbsp;&nbsp;`+
+        `<label>ต่อหน้า <select id="pageSizeSel">`+
+          [20,50,100].map(n => `<option value="${n}"${n===sv.pageSize?' selected':''}>${n}</option>`).join('')+
+        `</select></label>`+
+      `</div>`+
+      `<div class="page-nav">`+
+        `<button data-pg="first"${sv.page<=1?' disabled':''}>« หน้าแรก</button>`+
+        `<button data-pg="prev"${sv.page<=1?' disabled':''}>‹ ก่อนหน้า</button>`+
+        `<span>หน้า ${fmt(sv.page)} / ${fmt(pageCount)}</span>`+
+        `<button data-pg="next"${sv.page>=pageCount?' disabled':''}>ถัดไป ›</button>`+
+        `<button data-pg="last"${sv.page>=pageCount?' disabled':''}>หน้าสุดท้าย »</button>`+
+      `</div>`;
+    bar.querySelector('#pageSizeSel').addEventListener('change', e => {
+      sv.pageSize = Number(e.target.value) || 50;
+      sv.page = 1;
+      saveState();
+      render();
+    });
+    bar.querySelectorAll('button[data-pg]').forEach(b => {
+      b.addEventListener('click', () => {
+        const a = b.dataset.pg;
+        if(a === 'first') sv.page = 1;
+        else if(a === 'prev') sv.page = Math.max(1, sv.page - 1);
+        else if(a === 'next') sv.page = Math.min(pageCount, sv.page + 1);
+        else if(a === 'last') sv.page = pageCount;
+        saveState();
+        render();
+      });
+    });
+  }
+
   function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function escAttr(s){ return esc(s); }
 
@@ -1014,9 +1167,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     saveState();
   });
 
-  document.getElementById('searchBox').addEventListener('input', render);
-  document.getElementById('statusFilter').addEventListener('change', render);
-  document.getElementById('sortByUrgency').addEventListener('change', render);
+  document.getElementById('searchBox').addEventListener('input', () => { state.view.page = 1; render(); });
+  document.getElementById('statusFilter').addEventListener('change', () => { state.view.page = 1; render(); });
+  document.getElementById('sortByUrgency').addEventListener('change', () => {
+    if(document.getElementById('sortByUrgency').checked) state.view.sortKey = ''; // เลิกเรียงตามคอลัมน์
+    state.view.page = 1;
+    saveState();
+    render();
+  });
 
   ['periodDays','defaultLeadTime','safetyMonths'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {
