@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Editor / OS cruft
+*.swp
+Thumbs.db
+
+# Node (เผื่ออนาคตย้ายไป Next.js)
+node_modules/
+.next/
+.env
+.env.local
