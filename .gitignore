@@ -10,3 +10,9 @@ node_modules/
 .next/
 .env
 .env.local
+
+# ข้อมูลตัวอย่าง — เก็บไว้ในเครื่อง ไม่ push
+sample-data/
+
+# เอกสาร markdown — ไม่ track
+*.md
