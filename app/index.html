@@ -311,6 +311,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     background:var(--paper);
   }
   .editable:focus{outline:2px solid var(--brand);}
+  .editable.auto-val{color:var(--ink-soft);background:#EEF2EE;}
   .status-chip{
     display:inline-block;
     padding:3px 9px;
@@ -458,8 +459,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
       <div class="upload-card optional" data-card="lt">
         <div class="tag">ไฟล์ที่ 4 · ไม่บังคับ</div>
-        <h3>Lead Time / Safety Stock</h3>
-        <p class="cols">มี <code>รหัสสินค้า</code>, <code>Lead Time</code>, <code>Safety Stock</code> — ถ้าไม่อัปโหลด ระบบจะใช้ค่าเริ่มต้นด้านล่างกับทุกสินค้า</p>
+        <h3>Lead Time รายตัว</h3>
+        <p class="cols">ไม่บังคับ — ใช้เมื่อ Lead Time ต่างกันรายตัว มี <code>รหัสสินค้า</code>, <code>Lead Time</code> · ถ้าไม่อัปโหลด ใช้ค่าที่กรอกด้านล่างกับทุกรายการ</p>
         <div class="file-btn-row">
           <label class="file-btn">เลือกไฟล์<input type="file" accept=".csv,.xlsx,.xls" data-target="lt"></label>
           <span class="file-status" id="status-lt">ยังไม่อัปโหลด (ใช้ค่าเริ่มต้น)</span>
@@ -472,20 +473,22 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
   <section>
     <h2 class="section-title">2. กำหนดค่าและคำนวณ</h2>
-    <p class="section-sub">ค่าเริ่มต้นนี้จะถูกใช้กับสินค้าที่ไม่มีอยู่ในไฟล์ Lead Time/Safety Stock (หรือใช้กับทุกรายการถ้าไม่ได้อัปโหลดไฟล์ที่ 4) — แก้ไขค่าต่อรายการได้ในตารางผลลัพธ์</p>
+    <p class="section-sub">กรอก Lead Time และ Safety Stock ได้ที่นี่โดยตรง (ไม่ต้องอัปโหลดไฟล์ที่ 4) — ถ้าอัปโหลดไฟล์ที่ 4 ระบบจะใช้ Lead Time รายตัวจากไฟล์แทนค่าด้านล่าง · Safety Stock คำนวณอัตโนมัติจากยอดขาย · แก้ไขค่าต่อรายการได้ในตารางผลลัพธ์</p>
     <div class="settings-bar">
       <div class="field">
-        <label for="periodDays">จำนวนวันของช่วงยอดขายที่อัปโหลด</label>
+        <label for="periodDays">ช่วงยอดขายที่อัปโหลด (วัน)</label>
         <input type="number" id="periodDays" value="30" min="1">
-        <span class="hint">เช่น ดึงยอดขายสะสม 4 เดือน → กรอก 120 · หรือถ้าแปลงเป็นยอดเฉลี่ย/เดือนมาแล้ว → กรอก 30</span>
+        <span class="hint">ดึงยอดขายสะสม 4 เดือน → กรอก 120 · ถ้าเป็นยอดเฉลี่ย/เดือนแล้ว → กรอก 30</span>
       </div>
       <div class="field">
-        <label for="defaultLeadTime">Lead Time เริ่มต้น (วัน)</label>
+        <label for="defaultLeadTime">Lead Time (วัน)</label>
         <input type="number" id="defaultLeadTime" value="10" min="0">
+        <span class="hint">เวลารอสินค้าเข้าคลังนับจากวันเบิก</span>
       </div>
       <div class="field">
-        <label for="defaultSafety">Safety Stock เริ่มต้น</label>
-        <input type="number" id="defaultSafety" value="0" min="0">
+        <label for="safetyMonths">Safety Stock (ยอดขายกี่เดือน)</label>
+        <input type="number" id="safetyMonths" value="1.5" min="0" step="0.5">
+        <span class="hint">Safety Stock = ยอดขายเฉลี่ย/เดือน × ค่านี้ (คำนวณให้อัตโนมัติต่อรายการ)</span>
       </div>
       <div class="field" style="flex-grow:1;">
         <span class="hint">จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock&nbsp;&nbsp;·&nbsp;&nbsp;แนะนำเบิก = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่ง</span>
@@ -531,7 +534,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   </div>
 
   <footer class="note">
-    <strong>สูตรคำนวณ:</strong> ยอดขายเฉลี่ย/วัน = ยอดขายในช่วง ÷ จำนวนวัน · จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock · แนะนำเบิก = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่งลูกค้า (BO ถูกบวกเพิ่มเข้าจำนวนเบิกเสมอถ้ามี) · รายการที่มี BO แต่ไม่มีในไฟล์สต็อก จะขึ้นกล่องแจ้งเตือนสีแดงด้านบนและอยู่ในไฟล์ CSV<br>
+    <strong>สูตรคำนวณ:</strong> ยอดขายเฉลี่ย/วัน = ยอดขายในช่วง ÷ จำนวนวัน · Safety Stock = ยอดขายเฉลี่ย/เดือน × (ค่า "กี่เดือน" ด้านบน เช่น 1.5) — คำนวณอัตโนมัติ แก้รายตัวได้ · จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock · แนะนำเบิก = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่งลูกค้า (BO บวกเพิ่มเสมอถ้ามี · ถ้าไม่มี BO และสต็อกคลุมจุดเบิกแล้ว = ไม่ต้องเบิก) · รายการที่มี BO แต่ไม่มีในไฟล์สต็อก จะขึ้นกล่องแจ้งเตือนสีแดงด้านบนและอยู่ในไฟล์ CSV<br>
     ตัวอักษรสีน้ำเงินในตาราง = ช่องแก้ไขได้ (Lead Time / Safety Stock ต่อรายการ) แก้แล้วตัวเลขจะคำนวณใหม่ทันที · ข้อมูลทั้งหมดประมวลผลในเครื่องของคุณ ไม่ถูกส่งออกไปที่เซิร์ฟเวอร์ใด ๆ · ไฟล์ที่อัปโหลด ค่าที่ตั้ง และค่าที่แก้รายตัว จะถูกบันทึกไว้ในเบราว์เซอร์นี้อัตโนมัติ เปิดใหม่แล้วข้อมูลยังอยู่ (กด "ล้างข้อมูลที่บันทึกไว้" เพื่อเริ่มใหม่)
   </footer>
 
@@ -562,7 +565,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         settings: {
           periodDays: document.getElementById('periodDays').value,
           defaultLeadTime: document.getElementById('defaultLeadTime').value,
-          defaultSafety: document.getElementById('defaultSafety').value
+          safetyMonths: document.getElementById('safetyMonths').value
         }
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -602,7 +605,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     if(payload.settings){
       if(payload.settings.periodDays !== undefined) document.getElementById('periodDays').value = payload.settings.periodDays;
       if(payload.settings.defaultLeadTime !== undefined) document.getElementById('defaultLeadTime').value = payload.settings.defaultLeadTime;
-      if(payload.settings.defaultSafety !== undefined) document.getElementById('defaultSafety').value = payload.settings.defaultSafety;
+      if(payload.settings.safetyMonths !== undefined) document.getElementById('safetyMonths').value = payload.settings.safetyMonths;
     }
 
     const LABELS = {stock:'สต็อกคงคลัง', bo:'ยอดค้างส่ง BO', sales:'ยอดขาย', lt:'Lead Time/Safety Stock'};
@@ -818,7 +821,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   function computeRows(){
     const periodDays = Math.max(1, Number(document.getElementById('periodDays').value) || 30);
     const defLead = Number(document.getElementById('defaultLeadTime').value) || 0;
-    const defSafety = Number(document.getElementById('defaultSafety').value) || 0;
+    const safetyMonths = Math.max(0, Number(document.getElementById('safetyMonths').value) || 0);
 
     const codes = new Set([
       ...Object.keys(state.stock||{}),
@@ -838,12 +841,17 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       const boQty = Number(b.bo) || 0;
       const salesQty = Number(sl.sales) || 0;
       let leadTime = (l.leadtime !== undefined && l.leadtime !== '') ? Number(l.leadtime) : defLead;
-      let safety = (l.safety !== undefined && l.safety !== '') ? Number(l.safety) : defSafety;
+
+      // Safety Stock = ยอดขายเฉลี่ย/เดือน × ตัวคูณ (เดือน) — คำนวณอัตโนมัติต่อรายการ
+      const avgMonthly = (salesQty / periodDays) * 30;
+      const autoSafety = Math.round(avgMonthly * safetyMonths);
+      let safety = autoSafety;
+      let safetyIsAuto = true;
 
       const ov = state.overrides[code];
       if(ov){
         if(ov.leadTime !== undefined) leadTime = Number(ov.leadTime);
-        if(ov.safety !== undefined) safety = Number(ov.safety);
+        if(ov.safety !== undefined){ safety = Number(ov.safety); safetyIsAuto = false; } // override แก้มือในตาราง
       }
 
       rows.push({
@@ -852,7 +860,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         unit: s.unit || '',
         currentStock, boQty, salesQty,
         periodDays,
-        leadTime, safety,
+        leadTime, safety, autoSafety, safetyIsAuto,
         hasStockRecord: !!state.stock[code]
       });
     });
@@ -951,7 +959,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       '<th>รหัส</th><th>ชื่อสินค้า</th><th>หน่วย</th>'+
       '<th class="num">สต็อก</th><th class="num">BO</th><th class="num">พร้อมใช้จริง</th>'+
       '<th class="num">ยอดขาย/ช่วง</th><th class="num">เฉลี่ย/วัน</th>'+
-      '<th class="num">Lead Time</th><th class="num">Safety</th>'+
+      '<th class="num">Lead Time</th><th class="num">Safety (auto)</th>'+
       '<th class="num">จุดเบิก</th><th class="num">แนะนำเบิก</th><th>สถานะ</th>'+
       '</tr></thead><tbody>';
 
@@ -965,8 +973,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         `<td class="num">${fmt(r.netAvailable)}</td>`+
         `<td class="num">${fmt(r.salesQty)}</td>`+
         `<td class="num">${fmt(r.avgDaily,1)}</td>`+
-        `<td class="num"><input class="editable" type="number" min="0" value="${r.leadTime}" data-field="leadTime" data-code="${escAttr(r.code)}"></td>`+
-        `<td class="num"><input class="editable" type="number" min="0" value="${r.safety}" data-field="safety" data-code="${escAttr(r.code)}"></td>`+
+        `<td class="num"><input class="editable" type="number" min="0" value="${r.leadTime}" data-field="leadTime" data-code="${escAttr(r.code)}" title="เว้นว่างเพื่อกลับไปใช้ค่า Lead Time ด้านบน"></td>`+
+        `<td class="num"><input class="editable${r.safetyIsAuto?' auto-val':''}" type="number" min="0" value="${r.safety}" data-field="safety" data-code="${escAttr(r.code)}" title="${r.safetyIsAuto?'คำนวณอัตโนมัติจากยอดขาย — พิมพ์ตัวเลขเพื่อกำหนดเอง':'กำหนดเอง — เว้นว่างเพื่อกลับเป็นอัตโนมัติ'}"></td>`+
         `<td class="num">${fmt(r.reorderPoint,1)}</td>`+
         `<td class="num"><strong>${fmt(r.suggestedQty)}</strong>${r.boQty>0 && r.suggestedQty>0 ? `<span class="bo-tag">รวม BO ${fmt(r.boQty)}</span>` : ''}</td>`+
         `<td><span class="status-chip ${r.status}">${r.statusLabel}</span></td>`+
@@ -979,12 +987,16 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       inp.addEventListener('change', (e) => {
         const code = e.target.dataset.code;
         const field = e.target.dataset.field;
-        const val = Number(e.target.value) || 0;
-        const row = state.rows.find(r => r.code === code);
-        if(row) row[field] = val;
+        const raw = String(e.target.value).trim();
         state.overrides[code] = state.overrides[code] || {};
-        state.overrides[code][field] = val;
+        if(raw === ''){
+          delete state.overrides[code][field];               // เว้นว่าง = กลับไปใช้ค่าอัตโนมัติ/ค่าตั้งต้น
+          if(Object.keys(state.overrides[code]).length === 0) delete state.overrides[code];
+        } else {
+          state.overrides[code][field] = Math.max(0, Number(raw) || 0);
+        }
         saveState();
+        computeRows();   // คำนวณใหม่ทั้งชุด เพื่อให้ auto-safety / ค่าตั้งต้น re-derive
         render();
       });
     });
@@ -1006,7 +1018,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   document.getElementById('statusFilter').addEventListener('change', render);
   document.getElementById('sortByUrgency').addEventListener('change', render);
 
-  ['periodDays','defaultLeadTime','defaultSafety'].forEach(id => {
+  ['periodDays','defaultLeadTime','safetyMonths'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {
       if(state.computed && state.stock && state.bo && state.sales){
         computeRows();
