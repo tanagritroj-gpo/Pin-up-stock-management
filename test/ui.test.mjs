@@ -28,12 +28,12 @@ describe('Modal นำเข้าไฟล์ / เทมเพลต', () => {
     expect(modal.hidden).toBe(true);
   });
 
-  it('modal เทมเพลตมี 5 รายการให้ดาวน์โหลด', async () => {
+  it('modal เทมเพลตมี 6 รายการให้ดาวน์โหลด', async () => {
     const { window } = await loadApp();
     const doc = window.document;
     doc.getElementById('openTmplBtn').click();
     expect(doc.getElementById('tmplModal').hidden).toBe(false);
-    expect(doc.querySelectorAll('#tmplModal .tmpl-row [data-tmpl]').length).toBe(5);
+    expect(doc.querySelectorAll('#tmplModal .tmpl-row [data-tmpl]').length).toBe(6);
   });
 });
 

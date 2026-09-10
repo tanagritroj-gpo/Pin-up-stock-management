@@ -59,6 +59,7 @@ export async function uploadStandard(window, extra = {}) {
   await uploadFixture(window, 'sales', extra.sales || 'sales.csv');
   if (extra.lt) await uploadFixture(window, 'lt', extra.lt);
   if (extra.master) await uploadFixture(window, 'master', extra.master);
+  if (extra.incoming) await uploadFixture(window, 'incoming', extra.incoming);
 }
 
 /** กดปุ่มคำนวณในหน้าหลัก (ค่าเริ่มต้นกรอง "แสดงเฉพาะที่ต้องเบิก") */
@@ -116,6 +117,7 @@ export function stats(window) {
     total: n('statTotal'),
     critical: n('statCritical'),
     warn: n('statWarn'),
+    incoming: n('statIncoming'),
     ok: n('statOk')
   };
 }
