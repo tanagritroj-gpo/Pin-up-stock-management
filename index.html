@@ -58,6 +58,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     --warn-bg:#FBF0D6;
     --ok:#0F7B52;
     --ok-bg:#DEEDE6;
+    --info:#0B6FA4;
+    --info-bg:#E1EEF6;
     /* รูปทรง */
     --r-card:12px;
     --r-input:8px;
@@ -550,6 +552,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .stat-chip .lbl{font-size:12px;color:var(--ink-soft);}
   .stat-chip.critical .num{color:var(--critical);}
   .stat-chip.warn .num{color:var(--warn);}
+  .stat-chip.incoming .num{color:var(--info);}
   .stat-chip.ok .num{color:var(--ok);}
 
   .toolbar{
@@ -659,6 +662,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   .status-chip.critical{background:var(--critical-bg);color:var(--critical);}
   .status-chip.warn{background:var(--warn-bg);color:var(--warn);}
+  .status-chip.incoming{background:var(--info-bg);color:var(--info);}
   .status-chip.ok{background:var(--ok-bg);color:var(--ok);}
 
   thead th.th-sort{cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s ease, color .15s ease;}
@@ -975,6 +979,19 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           </div>
         </div>
 
+        <div class="import-row optional" data-card="incoming">
+          <div class="import-num">6</div>
+          <div class="import-main">
+            <div class="import-title">รายการที่เบิกไปแล้ว (รอของเข้าคลัง) <span class="import-tag opt">ไม่บังคับ</span></div>
+            <p class="import-cols">มี <code>รหัสสินค้า</code>, <code>จำนวนรอเข้า</code> (หรือ <code>On Order</code>) — ยอดที่เบิก/สั่งซื้อไปแล้วและกำลังรอเข้าคลัง · ระบบจะหักออกจาก “แนะนำเบิก” ให้ เพื่อไม่ให้เบิกซ้ำ · รหัสซ้ำจะถูกรวมยอดให้อัตโนมัติ</p>
+            <span class="file-status" id="status-incoming">ยังไม่อัปโหลด (ถือว่าไม่มีของรอเข้า)</span>
+          </div>
+          <div class="import-actions">
+            <label class="file-btn">เลือกไฟล์<input type="file" accept=".csv,.xlsx,.xls" data-target="incoming"></label>
+            <button class="tmpl-link" data-tmpl="incoming">เทมเพลต ↓</button>
+          </div>
+        </div>
+
       </div>
       <div class="modal-foot">
         <button class="secondary-btn" data-close-modal>ปิด</button>
@@ -999,6 +1016,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         <div class="tmpl-row"><span>3 · ยอดขายสินค้า</span><button class="secondary-btn" data-tmpl="sales">ดาวน์โหลด ↓</button></div>
         <div class="tmpl-row"><span>4 · Lead Time / Safety Stock</span><button class="secondary-btn" data-tmpl="lt">ดาวน์โหลด ↓</button></div>
         <div class="tmpl-row"><span>5 · รายการสินค้าทั้งหมด (Master List)</span><button class="secondary-btn" data-tmpl="master">ดาวน์โหลด ↓</button></div>
+        <div class="tmpl-row"><span>6 · รายการที่เบิกไปแล้ว (รอของเข้าคลัง)</span><button class="secondary-btn" data-tmpl="incoming">ดาวน์โหลด ↓</button></div>
       </div>
       <div class="modal-foot">
         <button class="secondary-btn" data-close-modal>ปิด</button>
@@ -1034,7 +1052,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         <span class="hint" id="defaultSafetyHint">Safety Stock = ยอดขายเฉลี่ย/เดือน × ค่านี้ (คิดเดือนละ 30 วัน)</span>
       </div>
       <div class="field" style="flex-grow:1;">
-        <span class="hint">จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock&nbsp;&nbsp;·&nbsp;&nbsp;แนะนำเบิก = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่ง</span>
+        <span class="hint">จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock&nbsp;&nbsp;·&nbsp;&nbsp;แนะนำเบิก = ยอดเติมให้ถึงจุดเบิก + BO ค้างส่ง − ของรอเข้าคลัง (ขั้นต่ำ 0)</span>
       </div>
       <button class="primary-btn" id="calcBtn" disabled>คำนวณจุดเบิกสินค้า</button>
     </div>
@@ -1051,6 +1069,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <div class="stat-chip"><span class="num" id="statTotal">0</span><span class="lbl">รายการทั้งหมด</span></div>
       <div class="stat-chip critical"><span class="num" id="statCritical">0</span><span class="lbl">ขาดสต็อกแล้ว</span></div>
       <div class="stat-chip warn"><span class="num" id="statWarn">0</span><span class="lbl">ควรเบิก</span></div>
+      <div class="stat-chip incoming"><span class="num" id="statIncoming">0</span><span class="lbl">รอของเข้า</span></div>
       <div class="stat-chip ok"><span class="num" id="statOk">0</span><span class="lbl">สต็อกเพียงพอ</span></div>
     </div>
 
@@ -1062,6 +1081,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           <option value="all">แสดงทั้งหมด</option>
           <option value="critical">เฉพาะ ขาดสต็อกแล้ว</option>
           <option value="warn">เฉพาะ ควรเบิก</option>
+          <option value="incoming">เฉพาะ รอของเข้า</option>
           <option value="ok">เฉพาะ เพียงพอ</option>
         </select>
         <label class="toggle-label"><input type="checkbox" id="sortByUrgency" checked> เรียงตามความเร่งด่วน</label>
@@ -1098,8 +1118,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
               </ul>
             </li>
             <li><strong>จุดเบิก</strong> = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock</li>
-            <li><strong>แนะนำเบิก</strong> = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่งลูกค้า</li>
-            <li class="note-muted">BO บวกเพิ่มเสมอถ้ามี · ถ้าไม่มี BO และสต็อกคลุมจุดเบิกแล้ว = ไม่ต้องเบิก</li>
+            <li><strong>แนะนำเบิก</strong> = MAX(0, &nbsp;MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่งลูกค้า − ของรอเข้าคลัง)</li>
+            <li class="note-muted">BO บวกเพิ่มเสมอถ้ามี · <strong>ของรอเข้าคลัง</strong> (ไฟล์ที่ 6) หักออกจากยอดที่ต้องเบิก กันเบิกซ้ำ · ถ้าไม่มี BO และสต็อกคลุมจุดเบิกแล้ว = ไม่ต้องเบิก</li>
           </ul>
         </div>
 
@@ -1108,6 +1128,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           <ul>
             <li>รองรับไฟล์ดิบระดับ Batch (หลายแถวต่อ 1 รหัส) — ระบบรวมยอดให้อัตโนมัติ</li>
             <li>ไฟล์ที่ 5 (Master List) = ฐานอ้างอิงชื่อสินค้าเท่านั้น ไม่เพิ่มรายการเข้าตารางเบิก</li>
+            <li>ไฟล์ที่ 6 (รอของเข้าคลัง) = ยอดที่เบิก/สั่งซื้อไปแล้วและกำลังรอเข้า — หักออกจาก “แนะนำเบิก” · รายการที่ต้องเบิกแต่ของรอเข้าคลุมแล้วจะขึ้นสถานะ <strong>รอของเข้า</strong> (สีฟ้า)</li>
             <li>ตารางเบิกแสดงเฉพาะรายการที่อยู่ในไฟล์สต็อกคงคลัง</li>
             <li>รายการที่มี BO แต่ไม่มีในไฟล์สต็อก → ขึ้นกล่องแจ้งเตือนสีแดงด้านบน และรวมอยู่ในไฟล์ CSV</li>
           </ul>
@@ -1131,7 +1152,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 <script>
 (function(){
   const state = {
-    stock: null, bo: null, sales: null, lt: null, master: null,
+    stock: null, bo: null, sales: null, lt: null, master: null, incoming: null,
     rows: [],
     boOrphans: [],
     overrides: {},
@@ -1140,11 +1161,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     view: { sortKey: '', sortDir: 'asc', page: 1, pageSize: 50 }
   };
 
-  const FILE_TARGETS = ['stock','bo','sales','lt','master'];
+  const FILE_TARGETS = ['stock','bo','sales','lt','master','incoming'];
 
   // fields ที่จะถูกรวมยอดอัตโนมัติเมื่อรหัสสินค้าเดียวกันปรากฏหลายแถว
   // (เช่นไฟล์ดิบจาก SAP ที่แยกทีละ Batch แทนที่จะเป็น 1 แถวต่อ 1 รหัส)
-  const SUM_FIELDS = {stock: 'stock', bo: 'bo', sales: 'sales'};
+  const SUM_FIELDS = {stock: 'stock', bo: 'bo', sales: 'sales', incoming: 'incoming'};
 
   // คอลัมน์ในตารางผลลัพธ์ (ใช้สร้างหัวตาราง + การเรียงลำดับ) — บางคอลัมน์แสดงตามโหมด Safety Stock
   const ALL_COLS = [
@@ -1153,6 +1174,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     {key:'unit',        label:'หน่วย',         type:'str'},
     {key:'currentStock',label:'สต็อก',         type:'num'},
     {key:'boQty',       label:'BO',            type:'num'},
+    {key:'incomingQty', label:'รอเข้าคลัง',    type:'num'},
     {key:'netAvailable',label:'พร้อมใช้จริง',  type:'num'},
     {key:'salesQty',    label:'ยอดขาย/ช่วง',   type:'num'},
     {key:'avgMonthly',  label:'เฉลี่ย/เดือน',  type:'num'},
@@ -1169,6 +1191,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     const mode = getSafetyMode();
     return ALL_COLS.filter(c => {
       if(c.key === 'safetyUnits') return mode === 'months';
+      if(c.key === 'incomingQty') return !!state.incoming;   // แสดงคอลัมน์นี้เฉพาะเมื่ออัปโหลดไฟล์ที่ 6
       return true;
     }).map(c => {
       if(c.key === 'safety'){
@@ -1178,7 +1201,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     });
   }
 
-  const STATUS_ORDER = {critical:0, warn:1, ok:2};
+  const STATUS_ORDER = {critical:0, warn:1, incoming:2, ok:3};
 
   const STORAGE_KEY = 'pinup-stock-v1';
 
@@ -1187,7 +1210,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       const payload = {
         v: 1,
         savedAt: new Date().toISOString(),
-        data: { stock: state.stock, bo: state.bo, sales: state.sales, lt: state.lt, master: state.master },
+        data: { stock: state.stock, bo: state.bo, sales: state.sales, lt: state.lt, master: state.master, incoming: state.incoming },
         fileNames: state.fileNames,
         overrides: state.overrides,
         computed: state.computed,
@@ -1235,6 +1258,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     state.sales = payload.data.sales || null;
     state.lt = payload.data.lt || null;
     state.master = payload.data.master || null;
+    state.incoming = payload.data.incoming || null;
     state.overrides = payload.overrides || {};
     state.fileNames = payload.fileNames || {};
     state.computed = !!payload.computed;
@@ -1298,6 +1322,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     sales: ['จำนวนขาย','ยอดขาย','sales qty','sold','sales'],
     leadtime: ['lead time','leadtime','ระยะเวลารอ','เวลารอสินค้า'],
     safety: ['safety stock','สต็อกสำรอง','สำรอง','safety'],
+    incoming: ['จำนวนรอเข้า','รอเข้าคลัง','รอเข้า','ค้างรับ','ยอดค้างรับ','ยอดสั่งซื้อค้างรับ','เบิกค้างรับ','on order','on-order','onorder','po qty','open po','incoming','in transit','in-transit'],
     batch: ['batch','lot','ล็อต','แบทช์']
   };
 
@@ -1405,6 +1430,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         } else if(target === 'master'){
           map.name = findCol(headers,'name');
           map.unit = findCol(headers,'unit');
+        } else if(target === 'incoming'){
+          map.incoming = findCol(headers,'incoming');
+          if(map.incoming === -1){
+            statusEl.textContent = 'ไม่พบคอลัมน์จำนวนรอเข้า';
+            statusEl.className = 'file-status error';
+            return;
+          }
         }
 
         const parsed = {};
@@ -1501,6 +1533,15 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         ['MED-0003','Insulin Glargine 100 IU/ml pen'],
         ['MED-0004','สินค้าที่ตอนนี้สต็อกเป็น 0 (ตัวอย่าง)']
       ]
+    },
+    incoming: {
+      filename: 'เทมเพลต_6_รอของเข้าคลัง.xlsx',
+      headers: ['รหัสสินค้า','จำนวนรอเข้า'],
+      rows: [
+        ['MED-0001',200],
+        ['MED-0002',0],
+        ['MED-0003',10]
+      ]
     }
   };
 
@@ -1546,7 +1587,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModals(); });
 
   function updateImportSummary(){
-    const LABELS = {stock:'สต็อก', bo:'BO', sales:'ยอดขาย', lt:'Lead Time', master:'Master List'};
+    const LABELS = {stock:'สต็อก', bo:'BO', sales:'ยอดขาย', lt:'Lead Time', master:'Master List', incoming:'รอของเข้า'};
     const loaded = FILE_TARGETS.filter(t => state[t]);
     const el = document.getElementById('importSummary');
     if(!el) return;
@@ -1555,7 +1596,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       return;
     }
     const need = ['stock','bo','sales'].filter(t => !state[t]).map(t => LABELS[t]);
-    let msg = `<span class="done">นำเข้าแล้ว ${loaded.length}/5 ไฟล์:</span> ` + loaded.map(t => LABELS[t]).join(', ');
+    let msg = `<span class="done">นำเข้าแล้ว ${loaded.length}/6 ไฟล์:</span> ` + loaded.map(t => LABELS[t]).join(', ');
     if(need.length) msg += ` · ยังขาดไฟล์จำเป็น: ${need.join(', ')}`;
     else msg += ' · พร้อมคำนวณ';
     el.innerHTML = msg;
@@ -1583,7 +1624,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       ...Object.keys(state.stock||{}),
       ...Object.keys(state.bo||{}),
       ...Object.keys(state.sales||{}),
-      ...Object.keys(state.lt||{})
+      ...Object.keys(state.lt||{}),
+      ...Object.keys(state.incoming||{})
     ]);
 
     const rows = [];
@@ -1593,10 +1635,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       const sl = (state.sales||{})[code] || {};
       const l = (state.lt||{})[code] || {};
       const m = (state.master||{})[code] || {};
+      const inc = (state.incoming||{})[code] || {};
 
       const currentStock = Number(s.stock) || 0;
       const boQty = Number(b.bo) || 0;
       const salesQty = Number(sl.sales) || 0;
+      const incomingQty = Number(inc.incoming) || 0;
 
       const fileLead = (l.leadtime !== undefined && l.leadtime !== '') ? Number(l.leadtime) : undefined;
       const fileSafety = (l.safety !== undefined && l.safety !== '') ? Number(l.safety) : undefined;
@@ -1616,7 +1660,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         // ชื่อสินค้า: ไฟล์สต็อก → Master List → ไฟล์ยอดขาย → รหัส (Master List ช่วยให้ชื่อไม่ขาด)
         name: s.name || m.name || sl.name || code,
         unit: s.unit || m.unit || '',
-        currentStock, boQty, salesQty,
+        currentStock, boQty, salesQty, incomingQty,
         periodDays,
         leadTime, safety, safetyIsDefault,
         hasStockRecord: !!(state.stock && state.stock[code])
@@ -1653,6 +1697,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
   function deriveMetrics(r){
     const netAvailable = r.currentStock - r.boQty;
+    const incomingQty = Number(r.incomingQty) || 0;
     const avgDaily = r.salesQty / r.periodDays;
     const avgMonthly = avgDaily * 30;
     // โหมด "เดือน" — r.safety คือจำนวนเดือน แปลงเป็นหน่วยด้วยยอดขายเฉลี่ย/วัน × 30
@@ -1661,13 +1706,16 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     const reorderPoint = avgDaily * r.leadTime + safetyUnits;
     // ส่วนที่สต็อกคงคลังไม่พอคลุมดีมานด์ช่วง Lead Time (+ Safety)
     const demandShortfall = Math.max(0, Math.ceil(reorderPoint - r.currentStock));
-    // top-up ยอด BO ค้างส่งลูกค้าเข้าไปเสมอ ถ้ามี
-    const suggestedQty = demandShortfall + r.boQty;
+    // ยอดที่ต้องเบิกจริง ๆ ก่อนหักของที่กำลังรอเข้าคลัง (top-up BO ค้างส่งลูกค้าเข้าไปเสมอถ้ามี)
+    const grossNeed = demandShortfall + r.boQty;
+    // ของที่เบิก/สั่งซื้อไปแล้วและกำลังรอเข้า หักออกจากยอดที่ต้องเบิกใหม่ กันเบิกซ้ำ
+    const suggestedQty = Math.max(0, grossNeed - incomingQty);
     let status, statusLabel;
-    if(netAvailable <= 0){ status='critical'; statusLabel='ขาดสต็อกแล้ว'; }
+    if(suggestedQty > 0 && netAvailable <= 0){ status='critical'; statusLabel='ขาดสต็อกแล้ว'; }
     else if(suggestedQty > 0){ status='warn'; statusLabel='ควรเบิก'; }
+    else if(grossNeed > 0){ status='incoming'; statusLabel='รอของเข้า'; }  // ต้องเบิกแต่ของรอเข้าคลุมแล้ว
     else { status='ok'; statusLabel='เพียงพอ'; }
-    return {netAvailable, avgDaily, avgMonthly, safetyUnits, reorderPoint, demandShortfall, suggestedQty, status, statusLabel};
+    return {netAvailable, incomingQty, avgDaily, avgMonthly, safetyUnits, reorderPoint, demandShortfall, grossNeed, suggestedQty, status, statusLabel};
   }
 
   function getSafetyMode(){
@@ -1764,7 +1812,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       rows = rows.filter(r => normalize(r.code).includes(q) || normalize(r.name).includes(q));
     }
     if(statusFilterVal === 'need'){
-      rows = rows.filter(r => r.status !== 'ok');
+      rows = rows.filter(r => r.status !== 'ok' && r.status !== 'incoming');
     } else if(statusFilterVal !== 'all'){
       rows = rows.filter(r => r.status === statusFilterVal);
     }
@@ -1781,6 +1829,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     document.getElementById('statTotal').textContent = all.length;
     document.getElementById('statCritical').textContent = all.filter(r=>r.status==='critical').length;
     document.getElementById('statWarn').textContent = all.filter(r=>r.status==='warn').length;
+    document.getElementById('statIncoming').textContent = all.filter(r=>r.status==='incoming').length;
     document.getElementById('statOk').textContent = all.filter(r=>r.status==='ok').length;
 
     // เปิดปุ่มส่งออกเมื่อคำนวณแล้วและมีรายการ
@@ -1824,6 +1873,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         case 'unit':         return `<td>${esc(r.unit)}</td>`;
         case 'currentStock': return `<td class="num">${fmt(r.currentStock)}</td>`;
         case 'boQty':        return `<td class="num">${fmt(r.boQty)}</td>`;
+        case 'incomingQty':  return `<td class="num">${fmt(r.incomingQty || 0)}</td>`;
         case 'netAvailable': return `<td class="num">${fmt(r.netAvailable)}</td>`;
         case 'salesQty':     return `<td class="num">${fmt(r.salesQty)}</td>`;
         case 'avgMonthly':   return `<td class="num">${fmt(r.avgMonthly,1)}</td>`;
@@ -1982,7 +2032,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     if(!state.computed || state.rows.length === 0) return;
     const rows = state.rows.map(r => Object.assign({}, r, deriveMetrics(r)));
     const safetyRawLabel = getSafetyMode() === 'months' ? 'Safety Stock (เดือน)' : 'Safety Stock (จำนวน)';
-    const headers = ['รหัสสินค้า','ชื่อสินค้า','หน่วย','สต็อกคงคลัง','ยอดค้างส่ง BO','สต็อกพร้อมใช้จริง','ยอดขายช่วงเวลา','ยอดขายเฉลี่ยต่อเดือน','ยอดขายเฉลี่ยต่อวัน','Lead Time',safetyRawLabel,'Safety Stock (หน่วยที่ใช้จริง)','จุดเบิกสินค้า','จำนวนที่แนะนำให้เบิก','สถานะ'];
+    const headers = ['รหัสสินค้า','ชื่อสินค้า','หน่วย','สต็อกคงคลัง','ยอดค้างส่ง BO','รอเข้าคลัง','สต็อกพร้อมใช้จริง','ยอดขายช่วงเวลา','ยอดขายเฉลี่ยต่อเดือน','ยอดขายเฉลี่ยต่อวัน','Lead Time',safetyRawLabel,'Safety Stock (หน่วยที่ใช้จริง)','จุดเบิกสินค้า','จำนวนที่แนะนำให้เบิก','สถานะ'];
     const enc = arr => arr.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
     const lines = [headers.join(',')];
     // แถวแจ้งเตือน: BO ค้างส่งแต่ไม่มีในไฟล์สต็อก
@@ -1990,10 +2040,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       const oSales = o.hasSalesRecord ? o.salesQty : '-';
       const oM = o.hasSalesRecord ? o.avgMonthly.toFixed(1) : '-';
       const oD = o.hasSalesRecord ? o.avgDaily.toFixed(1) : '-';
-      lines.push(enc([o.code, o.name, '', 0, o.boQty, -o.boQty, oSales, oM, oD, '', '', '', '', o.boQty, 'BO ค้างส่ง — ไม่มีในไฟล์สต็อกคงคลัง']));
+      lines.push(enc([o.code, o.name, '', 0, o.boQty, 0, -o.boQty, oSales, oM, oD, '', '', '', '', o.boQty, 'BO ค้างส่ง — ไม่มีในไฟล์สต็อกคงคลัง']));
     });
     rows.filter(r=>r.status!=='ok').forEach(r => {
-      lines.push(enc([r.code, r.name, r.unit, r.currentStock, r.boQty, r.netAvailable, r.salesQty, r.avgMonthly.toFixed(1), r.avgDaily.toFixed(1), r.leadTime, r.safety, r.safetyUnits.toFixed(1), Math.round(r.reorderPoint), r.suggestedQty, r.statusLabel]));
+      lines.push(enc([r.code, r.name, r.unit, r.currentStock, r.boQty, r.incomingQty || 0, r.netAvailable, r.salesQty, r.avgMonthly.toFixed(1), r.avgDaily.toFixed(1), r.leadTime, r.safety, r.safetyUnits.toFixed(1), Math.round(r.reorderPoint), r.suggestedQty, r.statusLabel]));
     });
     downloadCsv(lines.join('\r\n'), 'รายการเบิกสินค้า.csv');
   }));

@@ -20,7 +20,7 @@ describe('การคำนวณจุดเบิก (โหมด "เดื
   });
 
   it('นับสถานะรวมถูกต้อง', () => {
-    expect(stats(window)).toEqual({ total: 4, critical: 1, warn: 1, ok: 2 });
+    expect(stats(window)).toEqual({ total: 4, critical: 1, warn: 1, incoming: 0, ok: 2 });
   });
 
   it('P001: warn — reorderPoint 1650, แนะนำเบิก 1580', () => {
