@@ -1,0 +1,5 @@
+Material,ชื่อสินค้า,หน่วยนับ,Unrestricted,Batch
+B001,ยา Batch A,เม็ด,100,LOT-1
+B001,ยา Batch A,เม็ด,50,LOT-2
+B001,ยา Batch A,เม็ด,25,LOT-3
+B002,ยา Batch B,เม็ด,7,LOT-9

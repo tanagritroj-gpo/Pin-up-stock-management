@@ -1,0 +1,21 @@
+{
+  "name": "pin-up-stock-management",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ระบบคำนวณจุดเบิกสินค้า (Reorder Point) — single-file offline web app",
+  "scripts": {
+    "lint": "eslint index.html",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run lint && npm run test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-html": "^8.1.2",
+    "globals": "^15.14.0",
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.8"
+  }
+}
