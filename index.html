@@ -727,6 +727,27 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     margin-bottom:5px;
     letter-spacing:var(--tracking);
   }
+  .bo-alert-topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px 20px;
+    flex-wrap:wrap;
+    margin-bottom:5px;
+  }
+  .bo-alert-topbar .bo-alert-head{margin-bottom:0;}
+  .bo-alert .js-export-bo{
+    flex-shrink:0;
+    padding:7px 14px;
+    font-size:12px;
+    color:var(--critical);
+    border-color:var(--line-strong);
+  }
+  .bo-alert .js-export-bo:hover:not(:disabled){
+    background:var(--critical);
+    border-color:var(--critical);
+    color:#fff;
+  }
   .bo-alert-sub{
     font-size:12.5px;
     color:var(--ink-soft);
@@ -1587,7 +1608,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     if(list.length === 0){ box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
     const totalBo = list.reduce((s,o) => s + o.boQty, 0);
-    let html = `<div class="bo-alert-head">⚠️ มี BO ค้างส่งลูกค้า ${list.length} รายการ ที่ไม่มีในไฟล์สต็อกคงคลัง — ยังไม่ได้เบิก?</div>`+
+    let html = `<div class="bo-alert-topbar"><div class="bo-alert-head">⚠️ มี BO ค้างส่งลูกค้า ${list.length} รายการ ที่ไม่มีในไฟล์สต็อกคงคลัง — ยังไม่ได้เบิก?</div>`+
+      `<button type="button" class="tool-btn js-export-bo"><span class="ic">↧</span> ส่งออก CSV</button></div>`+
       `<p class="bo-alert-sub">รายการเหล่านี้มียอดค้างส่งลูกค้ารวม ${fmt(totalBo)} หน่วย แต่ไม่ปรากฏในไฟล์สต็อก ควรตรวจสอบว่าตกหล่นจากการเบิกหรือไม่</p>`+
       '<div class="bo-alert-scroll"><table class="bo-alert-table"><thead><tr><th>รหัสสินค้า</th><th>ชื่อสินค้า</th><th class="num">BO ค้างส่ง</th><th class="num">ยอดขาย/ช่วง</th><th class="num">เฉลี่ย/เดือน</th><th class="num">เฉลี่ย/วัน</th></tr></thead><tbody>';
     list.forEach(o => {
@@ -1598,6 +1620,39 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     });
     html += '</tbody></table></div>';
     box.innerHTML = html;
+    const boExportBtn = box.querySelector('.js-export-bo');
+    if(boExportBtn) boExportBtn.addEventListener('click', exportBoOrphans);
+  }
+
+  // สร้างไฟล์ CSV แล้วสั่งดาวน์โหลด (ใส่ BOM ให้ Excel อ่านภาษาไทยถูก)
+  function downloadCsv(body, filename){
+    const blob = new Blob(['﻿' + body], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ส่งออกเฉพาะกล่องแจ้งเตือน: BO ค้างส่งลูกค้าที่ไม่มีในไฟล์สต็อกคงคลัง
+  function exportBoOrphans(){
+    const list = state.boOrphans || [];
+    if(list.length === 0) return;
+    const headers = ['รหัสสินค้า','ชื่อสินค้า','BO ค้างส่ง','ยอดขายช่วงเวลา','ยอดขายเฉลี่ยต่อเดือน','ยอดขายเฉลี่ยต่อวัน'];
+    const enc = arr => arr.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+    const lines = [headers.join(',')];
+    list.forEach(o => {
+      lines.push(enc([
+        o.code,
+        o.name || '',
+        o.boQty,
+        o.hasSalesRecord ? o.salesQty : '-',
+        o.hasSalesRecord ? o.avgMonthly.toFixed(1) : '-',
+        o.hasSalesRecord ? o.avgDaily.toFixed(1) : '-'
+      ]));
+    });
+    downloadCsv(lines.join('\r\n'), 'BO_ค้างส่ง_ไม่มีในสต็อก.csv');
   }
 
   function render(){
@@ -1843,14 +1898,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     rows.filter(r=>r.status!=='ok').forEach(r => {
       lines.push(enc([r.code, r.name, r.unit, r.currentStock, r.boQty, r.netAvailable, r.salesQty, r.avgMonthly.toFixed(1), r.avgDaily.toFixed(1), r.leadTime, r.safety, r.safetyUnits.toFixed(1), Math.round(r.reorderPoint), r.suggestedQty, r.statusLabel]));
     });
-    const csv = '\uFEFF' + lines.join('\r\n');
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'รายการเบิกสินค้า.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(lines.join('\r\n'), 'รายการเบิกสินค้า.csv');
   }));
 
   document.querySelectorAll('input[name=safetyMode]').forEach(el => {
