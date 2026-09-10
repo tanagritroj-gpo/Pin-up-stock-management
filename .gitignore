@@ -11,6 +11,11 @@ node_modules/
 .env
 .env.local
 
+# Test / build artifacts
+coverage/
+.vitest/
+test-results/
+
 # ข้อมูลตัวอย่าง — เก็บไว้ในเครื่อง ไม่ push
 sample-data/
 
