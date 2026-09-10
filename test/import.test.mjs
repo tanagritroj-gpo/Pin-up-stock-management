@@ -35,6 +35,14 @@ describe('การนำเข้าไฟล์ + จับคู่คอล�
     expect(status.className).toContain('error');
   });
 
+  it('หาแถวหัวคอลัมน์อัตโนมัติ — มองข้ามแถวชื่อรายงาน/แถวว่างด้านบน', async () => {
+    const { window } = await loadApp();
+    await uploadFixture(window, 'stock', 'stock-with-title.csv');
+    const status = window.document.getElementById('status-stock');
+    expect(status.textContent).toBe('โหลดแล้ว 4 รายการ');
+    expect(status.className).toContain('loaded');
+  });
+
   it('รองรับ alias Material / Unrestricted และจับคู่แบบตรงทั้งช่องก่อน', async () => {
     const { window } = await loadApp();
     await uploadFixture(window, 'stock', 'stock-batch.csv');

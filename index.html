@@ -829,7 +829,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <div class="modal-head">
         <div>
           <h2 id="importModalTitle">นำเข้าไฟล์</h2>
-          <p>รองรับ .csv .xlsx .xls — แถวแรกของไฟล์ต้องเป็นหัวคอลัมน์ · ระบบจับคู่คอลัมน์ให้อัตโนมัติ (เทียบตรงทั้งช่องก่อน แล้วค่อย substring) · รหัสสินค้าต้องสะกดตรงกันทุกไฟล์ · ไฟล์ดิบระดับ Batch (หลายแถวต่อ 1 รหัส) ระบบรวมยอดให้อัตโนมัติ</p>
+          <p>รองรับ .csv .xlsx .xls — ระบบหาแถวหัวคอลัมน์ให้อัตโนมัติ (มองข้ามแถวชื่อรายงาน/โลโก้ด้านบนได้) · จับคู่คอลัมน์ให้อัตโนมัติ (เทียบตรงทั้งช่องก่อน แล้วค่อย substring) · รหัสสินค้าต้องสะกดตรงกันทุกไฟล์ · ไฟล์ดิบระดับ Batch (หลายแถวต่อ 1 รหัส) ระบบรวมยอดให้อัตโนมัติ</p>
         </div>
         <button class="modal-x" data-close-modal aria-label="ปิด">✕</button>
       </div>
@@ -1187,7 +1187,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
   function findCol(headers, aliasKey){
     const aliases = ALIASES[aliasKey];
-    const normHeaders = headers.map(normalize);
+    const normHeaders = (headers || []).map(normalize);
     // pass 1: ตรงทั้งช่อง (กัน "material" ไปแมตช์ "material description")
     for(const alias of aliases){
       const idx = normHeaders.findIndex(h => h === alias);
@@ -1201,6 +1201,29 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     return -1;
   }
 
+  // จำนวน alias key ที่แถวนี้แมตช์ได้ — ใช้ให้คะแนนว่าแถวไหน "น่าจะเป็นหัวคอลัมน์"
+  function headerScore(row){
+    let n = 0;
+    for(const key of Object.keys(ALIASES)){
+      if(findCol(row, key) !== -1) n++;
+    }
+    return n;
+  }
+
+  // หาแถวหัวคอลัมน์อัตโนมัติ — มองข้ามแถวชื่อรายงาน/โลโก้/แถวว่างด้านบนได้
+  // เกณฑ์: ต้องเจอคอลัมน์รหัสสินค้า และเลือกแถวที่แมตช์ alias ได้มากที่สุดใน 25 แถวแรก
+  function detectHeaderRow(rows){
+    const scanLimit = Math.min(rows.length, 25);
+    let best = -1, bestScore = 0;
+    for(let i = 0; i < scanLimit; i++){
+      const row = rows[i];
+      if(!Array.isArray(row) || findCol(row, 'code') === -1) continue;
+      const score = headerScore(row);
+      if(score > bestScore){ bestScore = score; best = i; }
+    }
+    return best; // -1 = ไม่พบ
+  }
+
   function parseWorkbookToRows(arrayBuffer, filename){
     let wb;
     if(filename.toLowerCase().endsWith('.csv')){
@@ -1212,8 +1235,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:''});
     if(rows.length < 1) return {headers:[], data:[]};
-    const headers = rows[0];
-    const data = rows.slice(1).filter(r => r.some(c => String(c).trim() !== ''));
+    const headerIdx = detectHeaderRow(rows);
+    // ไม่พบแถวหัวคอลัมน์ที่มีรหัสสินค้า → คืนแถวแรกไว้ให้ผู้เรียกแจ้ง error ตามปกติ
+    const idx = headerIdx === -1 ? 0 : headerIdx;
+    const headers = rows[idx] || [];
+    const data = rows.slice(idx + 1).filter(r => r.some(c => String(c).trim() !== ''));
     return {headers, data};
   }
 
