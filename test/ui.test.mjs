@@ -96,6 +96,30 @@ describe('กล่องแจ้งเตือน BO orphan', () => {
     expect(alert.rows[0]['ชื่อสินค้า']).toBe('ยาพิเศษ Z (จาก Master List)');
   });
 
+  it('ปุ่ม "ส่งออก CSV" ในกล่อง — ได้ไฟล์เฉพาะรายการ BO orphan', async () => {
+    const { window } = await loadApp();
+    let captured = null;
+    window.URL.createObjectURL = () => 'blob:test';
+    window.URL.revokeObjectURL = () => {};
+    window.Blob = class {
+      constructor(parts) {
+        captured = parts.join('');
+      }
+    };
+    window.HTMLAnchorElement.prototype.click = function () {};
+
+    await uploadStandard(window, { master: 'master.csv' });
+    await calc(window);
+    window.document.querySelector('.js-export-bo').click();
+    await new Promise((r) => setTimeout(r, 20));
+
+    const lines = captured.replace(/^﻿/, '').split('\r\n');
+    expect(lines[0]).toBe('รหัสสินค้า,ชื่อสินค้า,BO ค้างส่ง,ยอดขายช่วงเวลา,ยอดขายเฉลี่ยต่อเดือน,ยอดขายเฉลี่ยต่อวัน');
+    expect(lines).toHaveLength(2); // header + P900 เท่านั้น
+    expect(lines[1]).toContain('P900');
+    expect(lines[1]).toContain('ยาพิเศษ Z (จาก Master List)');
+  });
+
   it('มีคอลัมน์ยอดขาย/ช่วง, เฉลี่ย/เดือน, เฉลี่ย/วัน จากไฟล์ยอดขาย', async () => {
     const { window } = await loadApp();
     await uploadStandard(window);
