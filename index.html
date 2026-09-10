@@ -805,10 +805,64 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     color:var(--on-dark-soft);
     background:var(--band);
     border-radius:var(--r-card);
-    padding:22px 26px;
     line-height:1.7;
   }
   footer.note strong{color:var(--on-dark);}
+  /* การ์ดสูตรคำนวณ – ย่อ/ขยายได้ */
+  .note-card{border:none;}
+  .note-card > summary{
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:16px 24px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--on-dark);
+    letter-spacing:var(--tracking);
+    user-select:none;
+  }
+  .note-card > summary::-webkit-details-marker{display:none;}
+  .note-card > summary .chev{
+    margin-left:auto;
+    font-size:11px;
+    color:var(--on-dark-soft);
+    transition:transform .2s ease;
+  }
+  .note-card[open] > summary .chev{transform:rotate(180deg);}
+  .note-card > summary:hover .chev{color:var(--on-dark);}
+  .note-card > summary .sum-hint{
+    font-weight:400;
+    color:var(--on-dark-soft);
+    font-size:12px;
+  }
+  .note-card-body{
+    padding:4px 24px 22px;
+    border-top:1px solid rgba(255,255,255,0.12);
+    margin-top:2px;
+  }
+  .note-sec{margin-top:16px;}
+  .note-sec:first-child{margin-top:8px;}
+  .note-sec h4{
+    margin:0 0 6px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--on-dark);
+    letter-spacing:var(--tracking);
+  }
+  .note-sec ul{margin:0;padding-left:18px;}
+  .note-sec ul ul{margin:2px 0;}
+  .note-sec li{margin:3px 0;}
+  .note-sec li.note-muted{color:var(--on-dark-soft);font-size:11.5px;list-style:none;margin-left:-12px;}
+  .note-card-body strong{color:var(--on-dark);}
+  .note-card code{
+    background:rgba(255,255,255,0.12);
+    color:var(--on-dark);
+    padding:1px 5px;
+    border-radius:4px;
+    font-size:11.5px;
+  }
 </style>
 </head>
 <body>
@@ -1025,8 +1079,51 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   </div>
 
   <footer class="note">
-    <strong>สูตรคำนวณ:</strong> ยอดขายเฉลี่ย/วัน = ยอดขายในช่วง ÷ จำนวนวัน · Safety Stock ตามโหมดที่เลือก — "เดือน" = ยอดขายเฉลี่ย/เดือน × ค่าที่กรอก (auto) · "จำนวนคงที่" = จำนวนหน่วยที่กรอกตรง ๆ — แก้รายตัวได้ · จุดเบิก = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock · แนะนำเบิก = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่งลูกค้า (BO บวกเพิ่มเสมอถ้ามี · ถ้าไม่มี BO และสต็อกคลุมจุดเบิกแล้ว = ไม่ต้องเบิก) · รองรับไฟล์ดิบระดับ Batch (หลายแถวต่อ 1 รหัส) รวมยอดให้อัตโนมัติ · ไฟล์ที่ 5 (Master List) ใช้เป็นฐานอ้างอิงชื่อสินค้าเท่านั้น ไม่เพิ่มรายการเข้าตารางเบิก · ตารางเบิกแสดงเฉพาะรายการในไฟล์สต็อกคงคลัง · รายการที่มี BO แต่ไม่มีในไฟล์สต็อก จะขึ้นกล่องแจ้งเตือนสีแดงด้านบนและอยู่ในไฟล์ CSV<br>
-    ตัวอักษรสีน้ำเงินในตาราง = ช่องแก้ไขได้ (Lead Time / Safety Stock ต่อรายการ) แก้แล้วตัวเลขจะคำนวณใหม่ทันที · ข้อมูลทั้งหมดประมวลผลในเครื่องของคุณ ไม่ถูกส่งออกไปที่เซิร์ฟเวอร์ใด ๆ · ไฟล์ที่อัปโหลด ค่าที่ตั้ง และค่าที่แก้รายตัว จะถูกบันทึกไว้ในเบราว์เซอร์นี้อัตโนมัติ เปิดใหม่แล้วข้อมูลยังอยู่ (กด "ล้างข้อมูลที่บันทึกไว้" เพื่อเริ่มใหม่)
+    <details class="note-card" id="calcHelp">
+      <summary>
+        สูตรคำนวณ &amp; วิธีใช้งาน
+        <span class="sum-hint">— กดเพื่อดูรายละเอียด</span>
+        <span class="chev">▼</span>
+      </summary>
+      <div class="note-card-body">
+
+        <div class="note-sec">
+          <h4>1. สูตรคำนวณ</h4>
+          <ul>
+            <li><strong>ยอดขายเฉลี่ย/วัน</strong> = ยอดขายในช่วง ÷ จำนวนวันในช่วง</li>
+            <li><strong>Safety Stock</strong> ขึ้นกับโหมดที่เลือก:
+              <ul>
+                <li>โหมด <code>เดือน</code> = ยอดขายเฉลี่ย/เดือน × จำนวนเดือนที่กรอก</li>
+                <li>โหมด <code>จำนวนคงที่</code> = จำนวนหน่วยที่กรอกตรง ๆ</li>
+              </ul>
+            </li>
+            <li><strong>จุดเบิก</strong> = (ยอดขายเฉลี่ย/วัน × Lead Time) + Safety Stock</li>
+            <li><strong>แนะนำเบิก</strong> = MAX(0, จุดเบิก − สต็อกคงคลัง) + BO ค้างส่งลูกค้า</li>
+            <li class="note-muted">BO บวกเพิ่มเสมอถ้ามี · ถ้าไม่มี BO และสต็อกคลุมจุดเบิกแล้ว = ไม่ต้องเบิก</li>
+          </ul>
+        </div>
+
+        <div class="note-sec">
+          <h4>2. การนำเข้าไฟล์</h4>
+          <ul>
+            <li>รองรับไฟล์ดิบระดับ Batch (หลายแถวต่อ 1 รหัส) — ระบบรวมยอดให้อัตโนมัติ</li>
+            <li>ไฟล์ที่ 5 (Master List) = ฐานอ้างอิงชื่อสินค้าเท่านั้น ไม่เพิ่มรายการเข้าตารางเบิก</li>
+            <li>ตารางเบิกแสดงเฉพาะรายการที่อยู่ในไฟล์สต็อกคงคลัง</li>
+            <li>รายการที่มี BO แต่ไม่มีในไฟล์สต็อก → ขึ้นกล่องแจ้งเตือนสีแดงด้านบน และรวมอยู่ในไฟล์ CSV</li>
+          </ul>
+        </div>
+
+        <div class="note-sec">
+          <h4>3. การแก้ไข &amp; การบันทึก</h4>
+          <ul>
+            <li>ตัวอักษรสีน้ำเงินในตาราง = ช่องแก้ไขได้ (Lead Time / Safety Stock รายตัว) แก้แล้วคำนวณใหม่ทันที</li>
+            <li>ข้อมูลทั้งหมดประมวลผลในเครื่องของคุณ ไม่ถูกส่งออกไปเซิร์ฟเวอร์ใด ๆ</li>
+            <li>ไฟล์ที่อัปโหลด ค่าที่ตั้ง และค่าที่แก้รายตัว บันทึกในเบราว์เซอร์นี้อัตโนมัติ — เปิดใหม่ข้อมูลยังอยู่ (กด “ล้างข้อมูลที่บันทึกไว้” เพื่อเริ่มใหม่)</li>
+          </ul>
+        </div>
+
+      </div>
+    </details>
   </footer>
 
 </div>
